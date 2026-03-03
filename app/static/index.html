@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchoolChat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-darkest: #0e0f14;
+    --bg-dark: #14151c;
+    --bg-mid: #1a1b25;
+    --bg-light: #22232f;
+    --bg-hover: #2a2b3a;
+    --border: #2e2f3e;
+    --text: #e2e4ed;
+    --text-dim: #8b8da3;
+    --text-faint: #5c5e72;
+    --accent: #6c8aff;
+    --accent-hover: #8aa4ff;
+    --accent-dim: rgba(108,138,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --orange: #fbbf24;
+    --radius: 8px;
+    --radius-lg: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family:'Outfit',sans-serif; background:var(--bg-darkest);
+    color:var(--text); height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+.app { display:flex; height:100vh; }
+.sidebar {
+    width:260px; background:var(--bg-dark); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; flex-shrink:0;
+}
+.main-area { flex:1; display:flex; flex-direction:column; min-width:0; }
+.member-panel {
+    width:220px; background:var(--bg-dark); border-left:1px solid var(--border);
+    flex-shrink:0; overflow-y:auto; padding:16px;
+}
+
+/* Auth */
+.auth-screen { display:flex; align-items:center; justify-content:center; height:100vh; width:100%; }
+.auth-card {
+    background:var(--bg-mid); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:40px; width:380px; max-width:90vw;
+    animation:fadeUp 0.3s ease-out;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.auth-card h1 {
+    font-size:28px; font-weight:700; margin-bottom:4px;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.auth-card .subtitle { color:var(--text-dim); font-size:13px; margin-bottom:28px; }
+.auth-tabs { display:flex; gap:2px; background:var(--bg-dark); border-radius:6px; padding:3px; margin-bottom:24px; }
+.auth-tab {
+    flex:1; padding:8px; text-align:center; border-radius:4px; cursor:pointer;
+    font-size:13px; font-weight:500; color:var(--text-dim);
+    border:none; background:none; transition:all 0.15s; font-family:inherit;
+}
+.auth-tab.active { background:var(--bg-light); color:var(--text); }
+
+/* Forms */
+.form-group { margin-bottom:16px; }
+.form-group label {
+    display:block; font-size:11px; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.8px; color:var(--text-faint); margin-bottom:6px;
+}
+input[type="text"],input[type="password"],input[type="search"],select {
+    width:100%; padding:10px 12px; background:var(--bg-dark);
+    border:1px solid var(--border); border-radius:var(--radius);
+    color:var(--text); font-family:'Outfit',sans-serif; font-size:14px;
+    outline:none; transition:border-color 0.2s,box-shadow 0.2s;
+}
+input:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+select { cursor:pointer; }
+select option { background:var(--bg-dark); color:var(--text); }
+
+.btn {
+    padding:10px 20px; border-radius:var(--radius); border:none;
+    font-family:'Outfit',sans-serif; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all 0.15s;
+    display:inline-flex; align-items:center; gap:6px;
+}
+.btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+.btn-primary:hover { background:var(--accent-hover); transform:translateY(-1px); }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.btn-ghost { background:transparent; color:var(--text-dim); border:1px solid var(--border); }
+.btn-ghost:hover { background:var(--bg-hover); color:var(--text); }
+
+/* Sidebar */
+.sidebar-header { padding:16px 16px 12px; display:flex; align-items:center; justify-content:space-between; }
+.sidebar-header h2 {
+    font-size:18px; font-weight:700;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.connection-dot {
+    width:10px; height:10px; border-radius:50%; background:var(--red);
+    transition:background 0.3s; box-shadow:0 0 6px var(--red);
+}
+.connection-dot.connected { background:var(--green); box-shadow:0 0 6px var(--green); }
+
+.channel-section { padding:4px 8px; flex:1; overflow-y:auto; }
+.section-label {
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px;
+    color:var(--text-faint); padding:12px 8px 6px;
+    display:flex; align-items:center; justify-content:space-between;
+}
+.section-label button {
+    background:none; border:none; color:var(--text-faint); cursor:pointer;
+    font-size:18px; line-height:1; padding:0 4px; transition:color 0.15s;
+}
+.section-label button:hover { color:var(--accent); }
+
+.channel-item {
+    padding:7px 12px; border-radius:6px; cursor:pointer; font-size:14px;
+    color:var(--text-dim); display:flex; align-items:center; gap:8px;
+    transition:all 0.1s; margin-bottom:1px;
+}
+.channel-item:hover { background:var(--bg-hover); color:var(--text); }
+.channel-item.active { background:var(--accent-dim); color:var(--accent); }
+.channel-item .hash { font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600; opacity:0.4; }
+.channel-item.active .hash { opacity:1; }
+.channel-item .ch-role {
+    margin-left:auto; font-size:9px; font-weight:600; text-transform:uppercase;
+    padding:1px 5px; border-radius:3px; letter-spacing:0.3px;
+}
+.channel-item .ch-role.admin { background:var(--red-dim); color:var(--red); }
+.channel-item .ch-role.moderator { background:rgba(251,191,36,0.12); color:var(--orange); }
+
+.sidebar-footer {
+    padding:12px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.user-badge { display:flex; align-items:center; gap:10px; font-size:13px; min-width:0; }
+.user-avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:14px; flex-shrink:0;
+}
+.user-badge .name { font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Chat */
+.chat-header {
+    padding:12px 20px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; background:var(--bg-dark);
+}
+.chat-header .channel-name { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.chat-header .channel-name .hash { font-family:'JetBrains Mono',monospace; color:var(--text-faint); }
+.chat-header .channel-desc { font-size:12px; color:var(--text-dim); margin-top:2px; }
+.header-actions { display:flex; gap:8px; align-items:center; }
+
+.messages-area { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:1px; }
+.message { padding:6px 8px; display:flex; gap:12px; border-radius:6px; transition:background 0.1s; }
+.message:hover { background:var(--bg-mid); }
+.msg-avatar {
+    width:36px; height:36px; border-radius:50%; background:var(--bg-light);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:13px; flex-shrink:0; color:var(--accent);
+}
+.msg-body { min-width:0; flex:1; }
+.msg-header { display:flex; align-items:baseline; gap:8px; margin-bottom:2px; }
+.msg-sender { font-weight:600; font-size:14px; }
+.msg-time { font-size:11px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; }
+.msg-edited { font-size:10px; color:var(--text-faint); font-style:italic; }
+.msg-content { font-size:14px; line-height:1.5; word-break:break-word; }
+.msg-role-tag {
+    font-size:9px; font-weight:600; padding:1px 5px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:0.3px;
+}
+.msg-role-tag.admin { background:var(--red-dim); color:var(--red); }
+.msg-role-tag.moderator { background:rgba(251,191,36,0.12); color:var(--orange); }
+
+.typing-indicator { font-size:12px; color:var(--accent); padding:4px 20px; min-height:24px; font-style:italic; }
+
+.input-area { padding:12px 20px 16px; background:var(--bg-darkest); }
+.input-wrapper {
+    background:var(--bg-mid); border:1px solid var(--border); border-radius:var(--radius-lg);
+    display:flex; align-items:center; padding:4px; transition:border-color 0.2s,box-shadow 0.2s;
+}
+.input-wrapper:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+.input-wrapper input { flex:1; background:none; border:none; padding:10px 12px; font-size:14px; }
+.input-wrapper .btn { width:auto!important; flex-shrink:0; border-radius:8px; padding:8px 16px; }
+
+/* Members */
+.member-panel h3 {
+    font-size:11px; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.8px; color:var(--text-faint); margin-bottom:12px;
+}
+.member-item { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13px; }
+.member-dot { width:8px; height:8px; border-radius:50%; background:var(--text-faint); flex-shrink:0; }
+.member-dot.online { background:var(--green); box-shadow:0 0 4px var(--green); }
+.member-name { color:var(--text-dim); flex:1; }
+.member-item.online .member-name { color:var(--text); }
+.member-role-tag {
+    font-size:9px; font-weight:600; padding:1px 4px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:0.3px;
+}
+.member-role-tag.admin { background:var(--red-dim); color:var(--red); }
+.member-role-tag.moderator { background:rgba(251,191,36,0.12); color:var(--orange); }
+.member-actions button {
+    background:none; border:none; color:var(--text-faint); cursor:pointer;
+    font-size:11px; padding:2px 4px; border-radius:3px;
+}
+.member-actions button:hover { background:var(--bg-hover); color:var(--text); }
+
+/* Modal */
+.modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.65);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; backdrop-filter:blur(6px); animation:fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal {
+    background:var(--bg-mid); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:28px;
+    width:420px; max-width:90vw; animation:fadeUp 0.2s ease-out;
+}
+.modal h2 { font-size:18px; font-weight:600; margin-bottom:20px; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+
+/* Toast */
+.toast {
+    position:fixed; top:20px; right:20px; padding:12px 20px;
+    border-radius:var(--radius); font-size:13px; font-weight:500;
+    z-index:200; animation:slideIn 0.2s ease-out; box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+.toast.success { background:var(--green-dim); color:var(--green); border:1px solid rgba(74,222,128,0.3); }
+.toast.error { background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-faint); gap:8px; font-size:14px; }
+.empty-state .icon { font-size:48px; opacity:0.3; }
+.hidden { display:none!important; }
+
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+@media (max-width:900px) { .member-panel{display:none} .sidebar{width:220px} }
+@media (max-width:600px) {
+    .sidebar{width:60px}
+    .sidebar-header h2,.section-label span,.user-badge .name,.sidebar-footer .btn{display:none}
+    .channel-item span:not(.hash){display:none} .channel-item{justify-content:center}
+    .channel-item .ch-role{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+        <h1>SchoolChat</h1>
+        <p class="subtitle">Sign in to continue</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+        <div id="loginForm">
+            <div class="form-group"><label>Username</label><input type="text" id="loginUser" placeholder="username" autocomplete="off"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="password"></div>
+            <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+        </div>
+        <div id="registerForm" class="hidden">
+            <div class="form-group"><label>Username</label><input type="text" id="regUser" placeholder="username" autocomplete="off"></div>
+            <div class="form-group"><label>Display Name</label><input type="text" id="regName" placeholder="Your Name"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="regPass" placeholder="min 8 characters"></div>
+            <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<div id="appScreen" class="app hidden">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>SchoolChat</h2>
+            <div id="connDot" class="connection-dot" title="Disconnected"></div>
+        </div>
+        <div class="channel-section">
+            <div class="section-label">
+                <span>Channels</span>
+                <button onclick="showModal('createChannel')" title="Create channel">+</button>
+            </div>
+            <div id="channelList"></div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="user-badge">
+                <div class="user-avatar" id="myAvatar">?</div>
+                <div><div class="name" id="myName">-</div></div>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="doLogout()">Logout</button>
+        </div>
+    </div>
+    <div class="main-area">
+        <div id="noChatView" class="empty-state">
+            <div class="icon">💬</div>
+            <div>Select a channel or create one to start chatting</div>
+        </div>
+        <div id="chatView" class="hidden" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+            <div class="chat-header">
+                <div>
+                    <div class="channel-name"><span class="hash">#</span><span id="chatChName">-</span></div>
+                    <div class="channel-desc" id="chatChDesc"></div>
+                </div>
+                <div class="header-actions">
+                    <input type="search" id="searchInput" placeholder="Search..." style="width:140px;padding:6px 10px;font-size:12px;" onkeydown="if(event.key==='Enter')doSearch()">
+                    <button class="btn btn-sm btn-ghost" onclick="doSearch()">Search</button>
+                    <button id="btnAddMember" class="btn btn-sm btn-ghost hidden" onclick="showAddMember()">+ Member</button>
+                </div>
+            </div>
+            <div class="messages-area" id="messagesArea"></div>
+            <div class="typing-indicator" id="typingIndicator"></div>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="msgInput" placeholder="Type a message..." onkeydown="handleMsgKey(event)" oninput="handleTyping()">
+                    <button class="btn btn-primary btn-sm" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="member-panel">
+        <h3 id="onlineHeader">Online - 0</h3>
+        <div id="onlineList"></div>
+        <h3 style="margin-top:20px" id="membersHeader">Members - 0</h3>
+        <div id="memberList"></div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="createChannelModal" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('createChannel')">
+    <div class="modal">
+        <h2>Create Channel</h2>
+        <div class="form-group"><label>Name</label><input type="text" id="newChName" placeholder="general"></div>
+        <div class="form-group"><label>Description</label><input type="text" id="newChDesc" placeholder="Optional"></div>
+        <div class="modal-actions">
+            <button class="btn btn-sm btn-ghost" onclick="hideModal('createChannel')">Cancel</button>
+            <button class="btn btn-sm btn-primary" style="width:auto" onclick="doCreateChannel()">Create</button>
+        </div>
+    </div>
+</div>
+
+<div id="addMemberModal" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('addMember')">
+    <div class="modal">
+        <h2>Add Member</h2>
+        <div class="form-group"><label>Select User</label><select id="addMemberSelect"></select></div>
+        <div class="modal-actions">
+            <button class="btn btn-sm btn-ghost" onclick="hideModal('addMember')">Cancel</button>
+            <button class="btn btn-sm btn-primary" style="width:auto" onclick="doAddMember()">Add</button>
+        </div>
+    </div>
+</div>
+
+<div id="manageUserModal" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('manageUser')">
+    <div class="modal">
+        <h2>Set Channel Role</h2>
+        <div id="manageUserName" style="font-size:16px;font-weight:600;margin-bottom:16px;"></div>
+        <div class="form-group"><label>Role in this channel</label>
+            <select id="manageUserRole">
+                <option value="member">Member</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-sm btn-ghost" onclick="hideModal('manageUser')">Cancel</button>
+            <button class="btn btn-sm btn-primary" style="width:auto" onclick="doChangeRole()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE=location.origin;
+let S={token:null,rToken:null,user:null,channels:[],activeCh:null,myChRole:null,
+    msgs:[],ws:null,typingTimeout:null,onlineUsers:new Set(),typingUsers:{},allUsers:[],chMembers:[]};
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function toast(m,t='info'){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3500);}
+function showModal(n){document.getElementById(n+'Modal').classList.remove('hidden');const i=document.getElementById(n+'Modal').querySelector('input');if(i)setTimeout(()=>i.focus(),100);}
+function hideModal(n){document.getElementById(n+'Modal').classList.add('hidden');}
+function fmtTime(ts){
+    if(!ts)return '';
+    try{const d=new Date(typeof ts==='string'&&!ts.endsWith('Z')&&!ts.includes('+')?ts+'Z':ts);
+    return isNaN(d.getTime())?'':d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
+}
+
+async function api(method,path,body=null){
+    const h={'Content-Type':'application/json'};
+    if(S.token)h['Authorization']='Bearer '+S.token;
+    const opts={method,headers:h};
+    if(body)opts.body=JSON.stringify(body);
+    const res=await fetch(BASE+path,opts);
+    if(res.status===204)return null;
+    const data=res.headers.get('content-type')?.includes('json')?await res.json():await res.text();
+    if(!res.ok)throw new Error(data?.detail||data||res.statusText);
+    return data;
+}
+
+// ── Auth ──
+function switchAuthTab(tab){
+    document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+    document.getElementById('loginForm').classList.toggle('hidden',tab!=='login');
+    document.getElementById('registerForm').classList.toggle('hidden',tab!=='register');
+}
+
+async function doRegister(){
+    try{
+        await api('POST','/api/auth/register',{username:document.getElementById('regUser').value.trim(),
+            password:document.getElementById('regPass').value,
+            display_name:document.getElementById('regName').value.trim()||null});
+        toast('Account created!','success');switchAuthTab('login');
+        document.getElementById('loginUser').value=document.getElementById('regUser').value;
+    }catch(e){toast(e.message,'error');}
+}
+
+async function doLogin(){
+    try{
+        const t=await api('POST','/api/auth/login',{username:document.getElementById('loginUser').value.trim(),
+            password:document.getElementById('loginPass').value});
+        S.token=t.access_token;S.rToken=t.refresh_token;
+        S.user=await api('GET','/api/auth/me');
+        localStorage.setItem('sc_token',S.token);localStorage.setItem('sc_rtoken',S.rToken);
+        enterApp();
+    }catch(e){toast(e.message,'error');}
+}
+
+function doLogout(){
+    if(S.ws)S.ws.close();
+    S={token:null,rToken:null,user:null,channels:[],activeCh:null,myChRole:null,
+        msgs:[],ws:null,typingTimeout:null,onlineUsers:new Set(),typingUsers:{},allUsers:[],chMembers:[]};
+    localStorage.removeItem('sc_token');localStorage.removeItem('sc_rtoken');
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('appScreen').classList.add('hidden');
+}
+
+async function tryResume(){
+    S.token=localStorage.getItem('sc_token');S.rToken=localStorage.getItem('sc_rtoken');
+    if(!S.token)return false;
+    try{S.user=await api('GET','/api/auth/me');return true;}
+    catch(e){
+        if(S.rToken){try{
+            const t=await api('POST','/api/auth/refresh',{refresh_token:S.rToken});
+            S.token=t.access_token;S.rToken=t.refresh_token;
+            localStorage.setItem('sc_token',S.token);localStorage.setItem('sc_rtoken',S.rToken);
+            S.user=await api('GET','/api/auth/me');return true;
+        }catch(e2){}}
+        localStorage.removeItem('sc_token');localStorage.removeItem('sc_rtoken');return false;
+    }
+}
+
+async function enterApp(){
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('appScreen').classList.remove('hidden');
+    document.getElementById('myAvatar').textContent=(S.user.display_name||S.user.username)[0].toUpperCase();
+    document.getElementById('myName').textContent=S.user.display_name||S.user.username;
+    await loadChannels();connectWS();loadOnline();
+}
+
+// ── Channels ──
+async function loadChannels(){
+    try{
+        S.channels=await api('GET','/api/channels');
+        const c=document.getElementById('channelList');
+        if(!S.channels.length){c.innerHTML='<div style="padding:12px;color:var(--text-faint);font-size:13px">No channels yet — create one!</div>';return;}
+        c.innerHTML=S.channels.map(ch=>{
+            const active=S.activeCh?.id===ch.id?'active':'';
+            return `<div class="channel-item ${active}" onclick="selectChannel('${ch.id}')"><span class="hash">#</span><span>${esc(ch.name)}</span></div>`;
+        }).join('');
+    }catch(e){toast('Failed to load channels','error');}
+}
+
+async function selectChannel(id){
+    const ch=S.channels.find(c=>c.id===id);if(!ch)return;
+    S.activeCh=ch;S.typingUsers={};S.myChRole=null;
+    document.getElementById('noChatView').classList.add('hidden');
+    document.getElementById('chatView').classList.remove('hidden');
+    document.getElementById('chatView').style.display='flex';
+    document.getElementById('chatChName').textContent=ch.name;
+    document.getElementById('chatChDesc').textContent=ch.description||'';
+    loadChannels();
+    if(S.ws?.readyState===WebSocket.OPEN)S.ws.send(JSON.stringify({type:'channel.subscribe',channel_id:id}));
+    await loadMessages(id);
+    await loadMembers(id);
+    document.getElementById('msgInput').focus();
+}
+
+async function doCreateChannel(){
+    const n=document.getElementById('newChName').value.trim();
+    if(!n)return toast('Name required','error');
+    try{
+        const ch=await api('POST','/api/channels',{name:n,description:document.getElementById('newChDesc').value.trim()||null});
+        hideModal('createChannel');document.getElementById('newChName').value='';document.getElementById('newChDesc').value='';
+        toast('Channel created! You are the admin.','success');
+        await loadChannels();selectChannel(ch.id);
+    }catch(e){toast(e.message,'error');}
+}
+
+// ── Messages ──
+async function loadMessages(id){
+    try{S.msgs=await api('GET','/api/channels/'+id+'/messages?limit=50');renderMessages();}
+    catch(e){toast('Failed to load messages','error');}
+}
+
+function renderMessages(){
+    const a=document.getElementById('messagesArea');
+    if(!S.msgs.length){a.innerHTML='<div class="empty-state"><div class="icon">✨</div><div>No messages yet — say hello!</div></div>';return;}
+    a.innerHTML=S.msgs.map(m=>{
+        const init=(m.sender_name||'?')[0].toUpperCase();
+        const time=fmtTime(m.created_at);
+        const ed=m.edited_at?'<span class="msg-edited">(edited)</span>':'';
+        let roleTag='';
+        const r=m.sender_role;
+        if(r==='admin')roleTag='<span class="msg-role-tag admin">admin</span>';
+        else if(r==='moderator')roleTag='<span class="msg-role-tag moderator">mod</span>';
+        return `<div class="message"><div class="msg-avatar">${init}</div><div class="msg-body"><div class="msg-header"><span class="msg-sender">${esc(m.sender_name||'Unknown')}</span>${roleTag}<span class="msg-time">${time}</span>${ed}</div><div class="msg-content">${esc(m.content)}</div></div></div>`;
+    }).join('');
+    a.scrollTop=a.scrollHeight;
+}
+
+function handleMsgKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+
+async function sendMessage(){
+    const i=document.getElementById('msgInput');const c=i.value.trim();if(!c||!S.activeCh)return;
+    if(S.ws?.readyState===WebSocket.OPEN){
+        S.ws.send(JSON.stringify({type:'message.send',channel_id:S.activeCh.id,content:c,reply_to:null}));i.value='';
+    }else{try{await api('POST','/api/channels/'+S.activeCh.id+'/messages',{content:c});i.value='';await loadMessages(S.activeCh.id);}catch(e){toast(e.message,'error');}}
+}
+
+let typingSent=false;
+function handleTyping(){
+    if(!S.ws||S.ws.readyState!==WebSocket.OPEN||!S.activeCh)return;
+    if(!typingSent){S.ws.send(JSON.stringify({type:'typing.start',channel_id:S.activeCh.id}));typingSent=true;}
+    clearTimeout(S.typingTimeout);
+    S.typingTimeout=setTimeout(()=>{S.ws.send(JSON.stringify({type:'typing.stop',channel_id:S.activeCh.id}));typingSent=false;},2000);
+}
+
+async function doSearch(){
+    const q=document.getElementById('searchInput').value.trim();if(!q||!S.activeCh)return;
+    try{const r=await api('GET','/api/channels/'+S.activeCh.id+'/search?q='+encodeURIComponent(q)+'&limit=20');
+    S.msgs=r;renderMessages();toast(r.length+' result(s)','success');}catch(e){toast(e.message,'error');}
+}
+
+// ── Members ──
+async function loadMembers(id){
+    try{
+        S.chMembers=await api('GET','/api/channels/'+id+'/members');
+        // Determine my role in this channel
+        const me=S.chMembers.find(m=>m.user_id===S.user.id);
+        S.myChRole=me?.role_override||'member';
+        document.getElementById('btnAddMember').classList.toggle('hidden',S.myChRole!=='admin');
+        document.getElementById('membersHeader').textContent='Members - '+S.chMembers.length;
+        const isAdmin=S.myChRole==='admin';
+        document.getElementById('memberList').innerHTML=S.chMembers.map(u=>{
+            const on=S.onlineUsers.has(u.user_id);
+            const role=u.role_override||'member';
+            let roleTag='';
+            if(role==='admin')roleTag='<span class="member-role-tag admin">admin</span>';
+            else if(role==='moderator')roleTag='<span class="member-role-tag moderator">mod</span>';
+            const actions=isAdmin&&u.user_id!==S.user.id?
+                `<span class="member-actions"><button onclick="showManageUser('${u.user_id}','${esc(u.display_name||u.username)}','${role}')">⚙</button><button onclick="doRemoveMember('${u.user_id}')" title="Remove">✕</button></span>`:'';
+            return `<div class="member-item ${on?'online':''}"><div class="member-dot ${on?'online':''}"></div><span class="member-name">${esc(u.display_name||u.username)}</span>${roleTag}${actions}</div>`;
+        }).join('');
+    }catch(e){}
+}
+
+async function showAddMember(){
+    try{S.allUsers=await api('GET','/api/users');}catch(e){}
+    const existing=new Set(S.chMembers.map(m=>m.user_id));
+    const available=S.allUsers.filter(u=>!existing.has(u.id));
+    const sel=document.getElementById('addMemberSelect');
+    if(!available.length){toast('All users are already members','error');return;}
+    sel.innerHTML=available.map(u=>`<option value="${u.id}">${esc(u.display_name||u.username)}</option>`).join('');
+    showModal('addMember');
+}
+
+async function doAddMember(){
+    if(!S.activeCh)return;
+    const uid=document.getElementById('addMemberSelect').value;if(!uid)return;
+    try{await api('POST','/api/channels/'+S.activeCh.id+'/members',{user_id:uid});
+    hideModal('addMember');toast('Member added!','success');await loadMembers(S.activeCh.id);
+    }catch(e){toast(e.message,'error');}
+}
+
+async function doRemoveMember(uid){
+    if(!S.activeCh||!confirm('Remove this member?'))return;
+    try{await api('DELETE','/api/channels/'+S.activeCh.id+'/members/'+uid);
+    toast('Member removed','success');await loadMembers(S.activeCh.id);
+    }catch(e){toast(e.message,'error');}
+}
+
+function showManageUser(uid,name,currentRole){
+    document.getElementById('manageUserName').textContent=name;
+    document.getElementById('manageUserModal').dataset.uid=uid;
+    document.getElementById('manageUserRole').value=currentRole;
+    showModal('manageUser');
+}
+
+async function doChangeRole(){
+    if(!S.activeCh)return;
+    const uid=document.getElementById('manageUserModal').dataset.uid;
+    const role=document.getElementById('manageUserRole').value;
+    try{await api('PATCH','/api/channels/'+S.activeCh.id+'/members/'+uid+'/role',{role:role});
+    hideModal('manageUser');toast('Role updated!','success');await loadMembers(S.activeCh.id);
+    }catch(e){toast(e.message,'error');}
+}
+
+// ── Online ──
+async function loadOnline(){
+    try{const u=await api('GET','/api/users/online');S.onlineUsers=new Set(u.map(x=>x.id));
+    document.getElementById('onlineHeader').textContent='Online - '+u.length;
+    document.getElementById('onlineList').innerHTML=u.map(x=>
+        `<div class="member-item online"><div class="member-dot online"></div><span class="member-name">${esc(x.display_name||x.username)}</span></div>`
+    ).join('');
+    }catch(e){}
+}
+
+// ── WebSocket ──
+function connectWS(){
+    if(S.ws)S.ws.close();
+    const base=BASE.replace(/^http/,'ws');
+    const ws=new WebSocket(base+'/ws?token='+S.token);S.ws=ws;
+    ws.onopen=()=>{document.getElementById('connDot').classList.add('connected');
+        if(S.activeCh)ws.send(JSON.stringify({type:'channel.subscribe',channel_id:S.activeCh.id}));};
+    ws.onmessage=e=>{try{handleWS(JSON.parse(e.data));}catch(err){}};
+    ws.onclose=()=>{document.getElementById('connDot').classList.remove('connected');
+        if(S.token)setTimeout(()=>{if(S.token)connectWS();},3000);};
+}
+
+function handleWS(d){
+    if(d.type==='message.new'&&S.activeCh&&d.channel_id===S.activeCh.id){
+        if(!S.msgs.find(m=>m.id===d.id)){S.msgs.push(d);renderMessages();}
+    }else if(d.type==='presence.update'){loadOnline();if(S.activeCh)loadMembers(S.activeCh.id);}
+    else if(d.type==='typing.start'&&S.activeCh&&d.channel_id===S.activeCh.id){S.typingUsers[d.user_id]=d.username;renderTyping();}
+    else if(d.type==='typing.stop'){delete S.typingUsers[d.user_id];renderTyping();}
+    else if(d.type==='channel.added'){
+        toast('You were added to #'+(d.channel_name||'a channel'),'success');
+        loadChannels();
+    }
+    else if(d.type==='channel.removed'){
+        toast('You were removed from a channel','error');
+        if(S.activeCh&&S.activeCh.id===d.channel_id){
+            S.activeCh=null;S.myChRole=null;
+            document.getElementById('chatView').classList.add('hidden');
+            document.getElementById('noChatView').classList.remove('hidden');
+        }
+        loadChannels();
+    }
+    else if(d.type==='channel.member_update'&&S.activeCh&&d.channel_id===S.activeCh.id){
+        loadMembers(S.activeCh.id);
+    }
+}
+
+function renderTyping(){
+    const n=Object.values(S.typingUsers);const e=document.getElementById('typingIndicator');
+    if(!n.length)e.textContent='';else if(n.length===1)e.textContent=n[0]+' is typing...';
+    else e.textContent=n.join(', ')+' are typing...';
+}
+
+// ── Init ──
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('regPass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+(async()=>{if(await tryResume())enterApp();})();
+</script>
+</body>
+</html>

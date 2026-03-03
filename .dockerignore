@@ -1,0 +1,7 @@
+.env
+.git
+__pycache__
+*.pyc
+nginx/certs
+.pytest_cache
+tests/

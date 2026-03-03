@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+nginx/certs/
+.pytest_cache/
+*.egg-info/
+dist/
+build/

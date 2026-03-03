@@ -1,0 +1,1 @@
+# SchoolChat server application
